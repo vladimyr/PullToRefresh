@@ -22,9 +22,9 @@ import net.neevek.android.R;
 public class PullToRefreshHeaderView extends RelativeLayout implements OverScrollListView.PullToRefreshCallback {
     private final static int ROTATE_ANIMATION_DURATION = 300;
 
-    private View mArrowView;
-    private TextView mTvRefresh;
-    private ProgressBar mProgressBar;
+    private View mArrow;
+    private TextView mMessageLabel;
+    private ProgressBar mProgressIndicator;
 
     private Animation mAnimRotateUp;
     private Animation mAnimRotateDown;
@@ -33,9 +33,9 @@ public class PullToRefreshHeaderView extends RelativeLayout implements OverScrol
     private String mReleaseText = "Release to refresh";
     private String mRefreshText = "Refreshing...";
 
-    private int mArrowViewId = 0;
-    private int mTvRefreshId = 0;
-    private int mProgressBarId = 0;
+    private int mArrowId = 0;
+    private int mMessageLabelId = 0;
+    private int mProgressIndicatorId = 0;
 
     // TODO: add code based constructor!
 
@@ -53,9 +53,9 @@ public class PullToRefreshHeaderView extends RelativeLayout implements OverScrol
     public void init(Context context, AttributeSet attrs) {
         TypedArray ta = context.obtainStyledAttributes(attrs, R.styleable.PullToRefreshHeaderView);
 
-        mArrowViewId = ta.getResourceId(R.styleable.PullToRefreshHeaderView_arrow, 0);
-        mTvRefreshId = ta.getResourceId(R.styleable.PullToRefreshHeaderView_message_label, 0);
-        mProgressBarId = ta.getResourceId(R.styleable.PullToRefreshHeaderView_progress_indicator, 0);
+        mArrowId = ta.getResourceId(R.styleable.PullToRefreshHeaderView_arrow, 0);
+        mMessageLabelId = ta.getResourceId(R.styleable.PullToRefreshHeaderView_message_label, 0);
+        mProgressIndicatorId = ta.getResourceId(R.styleable.PullToRefreshHeaderView_progress_indicator, 0);
 
         ta.recycle();
 
@@ -71,19 +71,23 @@ public class PullToRefreshHeaderView extends RelativeLayout implements OverScrol
     protected void onLayout(boolean changed, int l, int t, int r, int b) {
         super.onLayout(changed, l, t, r, b);
 
-        if (mArrowView == null) {
-            mArrowView = findViewById(mArrowViewId);
-            mTvRefresh = (TextView)findViewById(mTvRefreshId);
-            mProgressBar = (ProgressBar)findViewById(mProgressBarId);
+        if (mArrow == null) {
+            mArrow = findViewById(mArrowId);
+            mMessageLabel = (TextView)findViewById(mMessageLabelId);
+            mProgressIndicator = (ProgressBar)findViewById(mProgressIndicatorId);
         }
     }
 
     @Override
     public void onStartPulling() {
-        mProgressBar.setVisibility(GONE);
-        mArrowView.setVisibility(VISIBLE);
-        mTvRefresh.setVisibility(VISIBLE);
-        mTvRefresh.setText(mPullText);
+        if (mProgressIndicator != null)
+            mProgressIndicator.setVisibility(GONE);
+        if (mArrow != null)
+            mArrow.setVisibility(VISIBLE);
+        if (mMessageLabel != null) {
+            mMessageLabel.setVisibility(VISIBLE);
+            mMessageLabel.setText(mPullText);
+        }
     }
 
     /**
@@ -95,30 +99,42 @@ public class PullToRefreshHeaderView extends RelativeLayout implements OverScrol
 
     @Override
     public void onReachAboveHeaderViewHeight() {
-        mProgressBar.setVisibility(GONE);
-        mTvRefresh.setText(mReleaseText);
-        mArrowView.startAnimation(mAnimRotateUp);
+        if (mProgressIndicator != null)
+            mProgressIndicator.setVisibility(GONE);
+        if (mMessageLabel != null)
+            mMessageLabel.setText(mReleaseText);
+        if (mArrow != null)
+            mArrow.startAnimation(mAnimRotateUp);
     }
 
     @Override
     public void onReachBelowHeaderViewHeight() {
-        mProgressBar.setVisibility(GONE);
-        mTvRefresh.setText(mPullText);
-        mArrowView.startAnimation(mAnimRotateDown);
+        if (mProgressIndicator != null)
+            mProgressIndicator.setVisibility(GONE);
+        if (mMessageLabel != null)
+            mMessageLabel.setText(mPullText);
+        if (mArrow != null)
+            mArrow.startAnimation(mAnimRotateDown);
     }
 
-    @Override
+        @Override
     public void onStartRefreshing() {
-        mArrowView.clearAnimation();
-        mArrowView.setVisibility(GONE);
-        mProgressBar.setVisibility(VISIBLE);
-        mTvRefresh.setText(mRefreshText);
+        if (mArrow != null) {
+            mArrow.clearAnimation();
+            mArrow.setVisibility(GONE);
+        }
+        if (mProgressIndicator != null)
+            mProgressIndicator.setVisibility(VISIBLE);
+        if (mMessageLabel != null)
+            mMessageLabel.setText(mRefreshText);
     }
 
     @Override
     public void onEndRefreshing() {
-        mProgressBar.setVisibility(GONE);
-        mTvRefresh.setVisibility(GONE);
+        if (mProgressIndicator != null)
+            mProgressIndicator.setVisibility(GONE);
+        if (mMessageLabel != null)
+            mMessageLabel.setVisibility(GONE);
     }
 
     public void setPullText(String pullText) {
