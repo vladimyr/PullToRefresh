@@ -1,4 +1,4 @@
-package net.neevek.android;
+package co.profi.pull2refresh_sample;
 
 import android.app.Activity;
 import android.os.Bundle;
@@ -6,6 +6,7 @@ import android.os.SystemClock;
 import android.view.View;
 import android.widget.ArrayAdapter;
 import android.widget.Toast;
+import co.profi.pull2refresh.R;
 import net.neevek.android.widget.OverScrollListView;
 
 import java.util.ArrayList;
