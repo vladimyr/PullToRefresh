@@ -1,15 +1,21 @@
 package net.neevek.android.widget;
 
 import android.content.Context;
+import android.content.res.TypedArray;
 import android.graphics.Canvas;
+import android.graphics.Color;
+import android.graphics.drawable.Drawable;
 import android.os.Build;
 import android.util.AttributeSet;
+import android.util.DisplayMetrics;
+import android.util.TypedValue;
 import android.view.*;
 import android.view.animation.DecelerateInterpolator;
 import android.widget.LinearLayout;
 import android.widget.ListView;
 import android.widget.RelativeLayout;
 import android.widget.Scroller;
+import net.neevek.android.R;
 
 /**
  * @author neevek <i at neevek.net>
@@ -86,22 +92,31 @@ public class OverScrollListView extends ListView {
 
     private Object mBizContextForRefresh;
 
+    private Context mContext;
+
+    private int dp2px(float dpVal) {
+        final DisplayMetrics dm = this.getResources().getDisplayMetrics();
+        return Math.round(TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, dpVal, dm));
+    }
+
     public OverScrollListView(Context context) {
         super(context);
-        init(context);
+        init(context, null);
     }
 
     public OverScrollListView(Context context, AttributeSet attrs) {
         super(context, attrs);
-        init(context);
+        init(context, attrs);
     }
 
     public OverScrollListView(Context context, AttributeSet attrs, int defStyle) {
         super(context, attrs, defStyle);
-        init(context);
+        init(context, attrs);
     }
 
-    private void init(Context context) {
+    private void init(Context context, AttributeSet attrs) {
+        mContext = context;
+
         mScreenDensity = context.getResources().getDisplayMetrics().density;
         mLoadingMorePullDistanceThreshold = (int)(mScreenDensity * 50);
 
@@ -120,11 +135,43 @@ public class OverScrollListView extends ListView {
         mMaximumVelocity = configuration.getScaledMaximumFlingVelocity();
     }
 
-    public void setPullToRefreshHeaderView(View headerView) {
+    public void setPullToRefreshHeaderView(int headerLayout) {
         if (mOrigHeaderView != null) {
             return;
         }
 
+        // TODO: add proper checking for invalid resource IDs!
+
+        // create Pull2Refresh header
+        final RelativeLayout origHeaderView = new RelativeLayout(mContext);
+        origHeaderView.setLayoutParams(new LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+        origHeaderView.setBackgroundColor(Color.TRANSPARENT);
+
+        // create LinearLayout used as
+        // container for provided view
+        final LinearLayout headerContainer = new LinearLayout(mContext);
+        headerContainer.setLayoutParams(new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0));
+        headerContainer.setGravity(Gravity.BOTTOM);
+
+        // set header view at header container
+        mHeaderView = headerContainer;
+
+        origHeaderView.addView(headerContainer);
+
+        // inflate provided layout
+        LayoutInflater.from(mContext).inflate(headerLayout, headerContainer);
+        final PullToRefreshHeaderView headerView = (PullToRefreshHeaderView) headerContainer.getChildAt(0);
+
+        mOrigHeaderView = headerView;
+
+        // set dimensions
+        headerView.measure(MeasureSpec.UNSPECIFIED, MeasureSpec.UNSPECIFIED);
+        headerContainer.getLayoutParams().height = headerView.getMeasuredHeight();
+
+        // add header view to the list
+        addHeaderView(origHeaderView);
+
+        /*
         if (!(headerView instanceof PullToRefreshCallback)) {
             throw new IllegalArgumentException("Pull-to-refresh header view must implement PullToRefreshCallback");
         }
@@ -142,6 +189,7 @@ public class OverScrollListView extends ListView {
                     "the following layout hierarchy: LinearLayout->LinearLayout->[either a LinearLayout or RelativeLayout]");
         }
         addHeaderView(headerView);
+        */
     }
 
     @Override

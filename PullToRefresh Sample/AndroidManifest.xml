@@ -2,7 +2,10 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android" package="co.profi.pull2refresh_sample">
     <uses-sdk android:minSdkVersion="9" android:targetSdkVersion="17"/>
     <application android:label="@string/app_name" android:icon="@drawable/icon">
-        <activity android:name=".MainActivity" android:label="@string/app_name" android:screenOrientation="portrait">
+        <activity
+                android:name=".MainActivity"
+                android:label="@string/app_name"
+                android:screenOrientation="portrait">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>

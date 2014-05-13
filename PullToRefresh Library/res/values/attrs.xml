@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <declare-styleable name="PullToRefreshHeaderView">
+        <attr name="arrow" format="reference"/>
+        <attr name="progress_indicator" format="reference"/>
+        <attr name="message_label" format="reference"/>
+    </declare-styleable>
+</resources>

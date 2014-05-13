@@ -1,12 +1,15 @@
 package net.neevek.android.widget;
 
+import android.annotation.TargetApi;
 import android.content.Context;
+import android.content.res.TypedArray;
+import android.os.Build;
 import android.util.AttributeSet;
 import android.view.View;
 import android.view.animation.Animation;
 import android.view.animation.RotateAnimation;
-import android.widget.LinearLayout;
 import android.widget.ProgressBar;
+import android.widget.RelativeLayout;
 import android.widget.TextView;
 import net.neevek.android.R;
 
@@ -16,7 +19,7 @@ import net.neevek.android.R;
  * Date: 11/17/13
  * Time: 8:25 PM
  */
-public class PullToRefreshHeaderView extends LinearLayout implements OverScrollListView.PullToRefreshCallback {
+public class PullToRefreshHeaderView extends RelativeLayout implements OverScrollListView.PullToRefreshCallback {
     private final static int ROTATE_ANIMATION_DURATION = 300;
 
     private View mArrowView;
@@ -30,17 +33,32 @@ public class PullToRefreshHeaderView extends LinearLayout implements OverScrollL
     private String mReleaseText = "Release to refresh";
     private String mRefreshText = "Refreshing...";
 
-    public PullToRefreshHeaderView(Context context) {
-        super(context);
-        init();
-    }
+    private int mArrowViewId = 0;
+    private int mTvRefreshId = 0;
+    private int mProgressBarId = 0;
+
+    // TODO: add code based constructor!
 
     public PullToRefreshHeaderView(Context context, AttributeSet attrs) {
         super(context, attrs);
-        init();
+        init(context, attrs);
     }
 
-    public void init() {
+    @TargetApi(Build.VERSION_CODES.HONEYCOMB)
+    public PullToRefreshHeaderView(Context context, AttributeSet attrs, int defStyle) {
+        super(context, attrs, defStyle);
+        init(context, attrs);
+    }
+
+    public void init(Context context, AttributeSet attrs) {
+        TypedArray ta = context.obtainStyledAttributes(attrs, R.styleable.PullToRefreshHeaderView);
+
+        mArrowViewId = ta.getResourceId(R.styleable.PullToRefreshHeaderView_arrow, 0);
+        mTvRefreshId = ta.getResourceId(R.styleable.PullToRefreshHeaderView_message_label, 0);
+        mProgressBarId = ta.getResourceId(R.styleable.PullToRefreshHeaderView_progress_indicator, 0);
+
+        ta.recycle();
+
         mAnimRotateUp = new RotateAnimation(0, -180f, Animation.RELATIVE_TO_SELF, 0.5f, Animation.RELATIVE_TO_SELF, 0.5f);
         mAnimRotateUp.setDuration(ROTATE_ANIMATION_DURATION);
         mAnimRotateUp.setFillAfter(true);
@@ -54,9 +72,9 @@ public class PullToRefreshHeaderView extends LinearLayout implements OverScrollL
         super.onLayout(changed, l, t, r, b);
 
         if (mArrowView == null) {
-            mArrowView = findViewById(R.id.iv_down_arrow);
-            mTvRefresh = (TextView)findViewById(R.id.tv_refresh);
-            mProgressBar = (ProgressBar)findViewById(R.id.pb_refreshing);
+            mArrowView = findViewById(mArrowViewId);
+            mTvRefresh = (TextView)findViewById(mTvRefreshId);
+            mProgressBar = (ProgressBar)findViewById(mProgressBarId);
         }
     }
 

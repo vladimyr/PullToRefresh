@@ -11,7 +11,7 @@
     <RelativeLayout
             android:id="@+id/vg_footer_container"
             android:layout_width="fill_parent"
-            android:layout_height="@dimen/overscroll_listview_header_height"
+            android:layout_height="70dp"
             >
 
         <ProgressBar

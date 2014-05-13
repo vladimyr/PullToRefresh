@@ -6,7 +6,6 @@ import android.os.SystemClock;
 import android.view.View;
 import android.widget.ArrayAdapter;
 import android.widget.Toast;
-import co.profi.pull2refresh.R;
 import net.neevek.android.widget.OverScrollListView;
 
 import java.util.ArrayList;
@@ -27,10 +26,11 @@ public class MainActivity extends Activity implements OverScrollListView.OnRefre
 
         mListView = (OverScrollListView)findViewById(R.id.listview);
 
-        View header = getLayoutInflater().inflate(R.layout.header, null);
+        // View header = getLayoutInflater().inflate(R.layout.header, null);
         View footer = getLayoutInflater().inflate(R.layout.footer, null);
 
-        mListView.setPullToRefreshHeaderView(header);
+        mListView.setPullToRefreshHeaderView(R.layout.header);
+        // mListView.setPullToRefreshHeaderView(header);
 //        mListView.addHeaderView(getLayoutInflater().inflate(R.layout.header, null));
 
 //        mListView.addFooterView(getLayoutInflater().inflate(R.layout.footer, null));
