@@ -7,6 +7,7 @@
         android:layout_height="match_parent">
 
     <net.neevek.android.widget.OverScrollListView
+            xmlns:custom="http://schemas.android.com/apk/res/co.profi.pull2refresh_sample"
             android:id="@+id/listview"
             android:layout_width="match_parent"
             android:layout_height="0dp"
@@ -14,6 +15,7 @@
             android:divider="@null"
             android:dividerHeight="1px"
             android:fadingEdge="none"
-            android:layout_weight="1"/>
+            android:layout_weight="1"
+            custom:min_refresh_duration="5000"/>
 </LinearLayout>
 

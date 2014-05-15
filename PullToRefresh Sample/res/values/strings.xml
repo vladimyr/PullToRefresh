@@ -1,4 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">PullToRefresh Sample</string>
+    <string name="message_refresh">Updating...</string>
+    <string name="message_pull">Pull to update</string>
+    <string name="message_release">Release to update</string>
 </resources>

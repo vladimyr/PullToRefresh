@@ -4,5 +4,13 @@
         <attr name="arrow" format="reference"/>
         <attr name="progress_indicator" format="reference"/>
         <attr name="message_label" format="reference"/>
+        <attr name="message_pull" format="string|reference"/>
+        <attr name="message_release" format="string|reference"/>
+        <attr name="message_refresh" format="string|reference"/>
+        <attr name="refresh_threshold_height" format="dimension|reference"/>
+    </declare-styleable>
+
+    <declare-styleable name="OverScrollListView">
+        <attr name="min_refresh_duration" format="integer|reference"/>
     </declare-styleable>
 </resources>

@@ -19,6 +19,8 @@ public class MainActivity extends Activity implements OverScrollListView.OnRefre
     private List<String> mDataList;
     private ArrayAdapter<String> mAdapter;
 
+    private int refreshCount = 0;
+
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -42,26 +44,30 @@ public class MainActivity extends Activity implements OverScrollListView.OnRefre
         mDataList = new ArrayList<String>();
         mAdapter = new ArrayAdapter<String>(this, R.layout.item, R.id.tv_item, mDataList);
 
+        populateData();
         mListView.setAdapter(mAdapter);
 
-        mListView.startRefreshManually(null);
+        // mListView.startRefreshManually(null);
     }
 
     private void initData() {
-        if (mDataList == null) {
-            mDataList = new ArrayList<String>();
-        } else {
-            mDataList.clear();
-        }
-
-        for (int i = 0; i < 25; ++i) {
-            mDataList.add("Item " + i);
-        }
+        populateData();
 
         mAdapter.notifyDataSetChanged();
 
         if (mDataList.size() > 0 && !mListView.isLoadingMoreEnabled()) {
             mListView.enableLoadMore(true);
+        }
+    }
+
+    private void populateData() {
+        if (mDataList.isEmpty()) {
+            for (int i = 0; i < 25; ++i) {
+                mDataList.add("Item " + i);
+            }
+        } else {
+            mDataList.add(0, "Added Item " + (++refreshCount));
+            // mDataList.clear();
         }
     }
 
@@ -95,7 +101,7 @@ public class MainActivity extends Activity implements OverScrollListView.OnRefre
 
     @Override
     public void onRefresh(Object bizContextObject) {
-        new Thread(){
+        new Thread() {
             @Override
             public void run() {
                 SystemClock.sleep(2000);
@@ -103,9 +109,13 @@ public class MainActivity extends Activity implements OverScrollListView.OnRefre
                 mListView.post(new Runnable() {
                     @Override
                     public void run() {
-                        initData();
-                        mListView.finishRefreshing();
-                        mListView.resetLoadMoreFooterView();
+                        mListView.finishRefreshing(new OverScrollListView.RefreshObserver() {
+                            @Override
+                            public void onRefreshFinished() {
+                                initData();
+                                mListView.resetLoadMoreFooterView();
+                            }
+                        });
                     }
                 });
             }

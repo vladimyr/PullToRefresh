@@ -5,6 +5,7 @@ import android.content.Context;
 import android.content.res.TypedArray;
 import android.os.Build;
 import android.util.AttributeSet;
+import android.util.Log;
 import android.view.View;
 import android.view.animation.Animation;
 import android.view.animation.RotateAnimation;
@@ -20,6 +21,8 @@ import net.neevek.android.R;
  * Time: 8:25 PM
  */
 public class PullToRefreshHeaderView extends RelativeLayout implements OverScrollListView.PullToRefreshCallback {
+    public static final String TAG = "PullToRefreshHeaderView";
+
     private final static int ROTATE_ANIMATION_DURATION = 300;
 
     private View mArrow;
@@ -29,13 +32,15 @@ public class PullToRefreshHeaderView extends RelativeLayout implements OverScrol
     private Animation mAnimRotateUp;
     private Animation mAnimRotateDown;
 
-    private String mPullText = "Pull to refresh";
-    private String mReleaseText = "Release to refresh";
-    private String mRefreshText = "Refreshing...";
+    private String mPullText;
+    private String mReleaseText;
+    private String mRefreshText;
 
     private int mArrowId = 0;
     private int mMessageLabelId = 0;
     private int mProgressIndicatorId = 0;
+
+    private int mRefreshThresholdHeight = 0;
 
     // TODO: add code based constructor!
 
@@ -50,12 +55,25 @@ public class PullToRefreshHeaderView extends RelativeLayout implements OverScrol
         init(context, attrs);
     }
 
+    private String getString(TypedArray ta, int attr, String defVal) {
+        final String val = ta.getString(attr);
+        if (val == null)
+            return defVal;
+        return val;
+    }
+
     public void init(Context context, AttributeSet attrs) {
         TypedArray ta = context.obtainStyledAttributes(attrs, R.styleable.PullToRefreshHeaderView);
 
         mArrowId = ta.getResourceId(R.styleable.PullToRefreshHeaderView_arrow, 0);
         mMessageLabelId = ta.getResourceId(R.styleable.PullToRefreshHeaderView_message_label, 0);
         mProgressIndicatorId = ta.getResourceId(R.styleable.PullToRefreshHeaderView_progress_indicator, 0);
+
+        mRefreshThresholdHeight = ta.getDimensionPixelSize(R.styleable.PullToRefreshHeaderView_refresh_threshold_height, 0);
+
+        mPullText = getString(ta, R.styleable.PullToRefreshHeaderView_message_pull, "Pull to refresh");
+        mReleaseText = getString(ta, R.styleable.PullToRefreshHeaderView_message_release, "Release to refresh");
+        mRefreshText = getString(ta, R.styleable.PullToRefreshHeaderView_message_refresh, "Refreshing...");
 
         ta.recycle();
 
@@ -65,6 +83,10 @@ public class PullToRefreshHeaderView extends RelativeLayout implements OverScrol
         mAnimRotateDown = new RotateAnimation(-180f, 0, Animation.RELATIVE_TO_SELF, 0.5f, Animation.RELATIVE_TO_SELF, 0.5f);
         mAnimRotateDown.setDuration(ROTATE_ANIMATION_DURATION);
         mAnimRotateDown.setFillAfter(true);
+    }
+
+    public int getRefreshThresholdHeight() {
+        return mRefreshThresholdHeight;
     }
 
     @Override
@@ -109,6 +131,8 @@ public class PullToRefreshHeaderView extends RelativeLayout implements OverScrol
 
     @Override
     public void onReachBelowHeaderViewHeight() {
+        Log.d(TAG, "onReachBelowHeaderViewHeight called");
+
         if (mProgressIndicator != null)
             mProgressIndicator.setVisibility(GONE);
         if (mMessageLabel != null)
@@ -117,7 +141,7 @@ public class PullToRefreshHeaderView extends RelativeLayout implements OverScrol
             mArrow.startAnimation(mAnimRotateDown);
     }
 
-        @Override
+    @Override
     public void onStartRefreshing() {
         if (mArrow != null) {
             mArrow.clearAnimation();

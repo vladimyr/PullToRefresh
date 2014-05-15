@@ -1,10 +1,12 @@
 package net.neevek.android.widget;
 
+import android.animation.Animator;
+import android.animation.ValueAnimator;
+import android.annotation.TargetApi;
 import android.content.Context;
 import android.content.res.TypedArray;
 import android.graphics.Canvas;
 import android.graphics.Color;
-import android.graphics.drawable.Drawable;
 import android.os.Build;
 import android.util.AttributeSet;
 import android.util.DisplayMetrics;
@@ -15,7 +17,11 @@ import android.widget.LinearLayout;
 import android.widget.ListView;
 import android.widget.RelativeLayout;
 import android.widget.Scroller;
+import net.neevek.utilities.Synchronizer;
 import net.neevek.android.R;
+import net.neevek.utilities.Timer;
+
+import java.lang.reflect.Type;
 
 /**
  * @author neevek <i at neevek.net>
@@ -44,8 +50,72 @@ import net.neevek.android.R;
  *       you the bounce effect, and that is why it has the name. just remember
  *       not to call setPullToRefreshHeaderView()
  */
+
+@TargetApi(Build.VERSION_CODES.HONEYCOMB)
+class Revealer implements ValueAnimator.AnimatorUpdateListener {
+    private final int mDuration;
+    private final View mHeaderView;
+
+    private ValueAnimator mCurrAnimator;
+
+    public Revealer(View headerView,int duration) {
+        mHeaderView = headerView;
+        mDuration = duration;
+    }
+
+    public void startRevealing(int fromY, int toY, final RevealerListener listener) {
+        mCurrAnimator = ValueAnimator.ofInt(fromY, toY);
+        mCurrAnimator.setDuration(mDuration);
+        mCurrAnimator.addUpdateListener(this);
+
+        final Revealer self = this;
+
+        if (listener != null)
+            mCurrAnimator.addListener(new Animator.AnimatorListener() {
+                @Override
+                public void onAnimationStart(Animator animation) {
+                    listener.onRevealingStart(self);
+                }
+
+                @Override
+                public void onAnimationEnd(Animator animation) {
+                    listener.onRevealingEnd(self);
+                }
+
+                @Override
+                public void onAnimationCancel(Animator animation) {
+
+                }
+
+                @Override
+                public void onAnimationRepeat(Animator animation) {
+
+                }
+            });
+
+        mCurrAnimator.start();
+    }
+
+    public void stop() {
+        mCurrAnimator.end();
+        mCurrAnimator = null;
+    }
+
+    @Override
+    public void onAnimationUpdate(ValueAnimator animation) {
+        mHeaderView.getLayoutParams().height = (Integer) animation.getAnimatedValue();
+        mHeaderView.requestLayout();
+    }
+
+    public static interface RevealerListener {
+        public abstract void onRevealingStart(Revealer revealer);
+        public abstract void onRevealingEnd(Revealer revealer);
+    }
+}
+
 public class OverScrollListView extends ListView {
     private final static int DEFAULT_MAX_OVER_SCROLL_DURATION = 350;
+    private static final int REVEALER_ANIMATION_DURATION = 350;
 
     // boucing for a normal touch scroll gesture(happens right after the finger leaves the screen)
     private Scroller mScroller;
@@ -93,6 +163,13 @@ public class OverScrollListView extends ListView {
     private Object mBizContextForRefresh;
 
     private Context mContext;
+    private Revealer mRevealer;
+    private int mHeaderThresholdHeight = 0;
+    private int mMinRefreshDuration;
+    private Timer mRefreshTimer = null;
+
+    private Synchronizer mRefreshSync;
+    private RefreshObserver mRefreshObserver;
 
     private int dp2px(float dpVal) {
         final DisplayMetrics dm = this.getResources().getDisplayMetrics();
@@ -116,6 +193,28 @@ public class OverScrollListView extends ListView {
 
     private void init(Context context, AttributeSet attrs) {
         mContext = context;
+
+        TypedArray ta = context.obtainStyledAttributes(attrs, R.styleable.OverScrollListView);
+        mMinRefreshDuration = ta.getInt(R.styleable.OverScrollListView_min_refresh_duration, 0);
+
+        if (mMinRefreshDuration == 0) {
+            mRefreshSync = new Synchronizer(1);
+            mRefreshTimer = null;
+        }
+        else {
+            mRefreshSync = new Synchronizer(2);
+            mRefreshTimer = new Timer(mMinRefreshDuration);
+        }
+
+        mRefreshSync.addObserver(new Synchronizer.SynchronizationObserver() {
+            @Override
+            public void onSynced(Synchronizer synchronizer) {
+                finishRefreshingInternal();
+                mRefreshSync.recycle();
+            }
+        });
+
+        ta.recycle();
 
         mScreenDensity = context.getResources().getDisplayMetrics().density;
         mLoadingMorePullDistanceThreshold = (int)(mScreenDensity * 50);
@@ -162,6 +261,7 @@ public class OverScrollListView extends ListView {
         LayoutInflater.from(mContext).inflate(headerLayout, headerContainer);
         final PullToRefreshHeaderView headerView = (PullToRefreshHeaderView) headerContainer.getChildAt(0);
 
+        mHeaderThresholdHeight = headerView.getRefreshThresholdHeight();
         mOrigHeaderView = headerView;
 
         // set dimensions
@@ -198,6 +298,10 @@ public class OverScrollListView extends ListView {
 
         if (mHeaderViewHeight == 0 && mHeaderView != null) {
             mHeaderViewLayoutParams = mHeaderView.getLayoutParams();
+
+            // create revealer
+            mRevealer = new Revealer(mHeaderView, REVEALER_ANIMATION_DURATION);
+
             // after the first "laying-out", we get the original height of header view
             mHeaderViewHeight = mHeaderViewLayoutParams.height;
 
@@ -257,10 +361,21 @@ public class OverScrollListView extends ListView {
         mOnLoadMoreListener = listener;
     }
 
-    public void finishRefreshing() {
+    public interface RefreshObserver {
+        public abstract void onRefreshFinished();
+    }
+
+    public void finishRefreshing(RefreshObserver observer) {
+        mRefreshObserver = observer;
+        mRefreshSync.notifySync();
+    }
+
+    public void finishRefreshingInternal() {
         if (mIsRefreshing) {
             mCancellingRefreshing = true;
             mIsRefreshing = false;
+
+            mRefreshObserver.onRefreshFinished();
 
             mScroller.forceFinished(true);
 
@@ -486,13 +601,32 @@ public class OverScrollListView extends ListView {
         return true;
     }
 
+    @TargetApi(Build.VERSION_CODES.HONEYCOMB)
     private void springBack() {
         int scrollY = getScrollY();
 
         int curHeaderViewHeight = getCurrentHeaderViewHeight();
-        if (curHeaderViewHeight == mHeaderViewHeight && mHeaderViewHeight > 0) {
+        if (curHeaderViewHeight >= mHeaderThresholdHeight && mHeaderViewHeight > 0) {
+
             if (!mIsRefreshing && mOrigHeaderView != null) {
-                triggerRefresh();
+                final int remainingHeight = mHeaderViewHeight - curHeaderViewHeight;
+
+                if (remainingHeight > 0 && mRevealer != null) {
+                    mRevealer.startRevealing(curHeaderViewHeight, mHeaderViewHeight, new Revealer.RevealerListener() {
+                        @Override
+                        public void onRevealingStart(Revealer revealer) {
+
+                        }
+
+                        @Override
+                        public void onRevealingEnd(Revealer revealer) {
+                            triggerRefresh();
+                        }
+                    });
+                    mIsRefreshing = true;
+                } else {
+                    triggerRefresh();
+                }
             }
         } else {
             scrollY -= curHeaderViewHeight;
@@ -520,6 +654,17 @@ public class OverScrollListView extends ListView {
 
     private void triggerRefresh() {
         mIsRefreshing = true;
+
+        if (mRefreshTimer != null) {
+            mRefreshTimer.setAction(new Runnable() {
+                @Override
+                public void run() {
+                    mRefreshSync.notifySync();
+                }
+            });
+            mRefreshTimer.start();
+        }
+
         mOrigHeaderView.onStartRefreshing();
 
         if (mOnRefreshListener != null) {
@@ -733,9 +878,9 @@ public class OverScrollListView extends ListView {
             }
             mOrigHeaderView.onPull(height);
 
-            if (oldHeight < mHeaderViewHeight && height == mHeaderViewHeight) {
+            if (oldHeight < mHeaderThresholdHeight && height >= mHeaderThresholdHeight) {
                 mOrigHeaderView.onReachAboveHeaderViewHeight();
-            } else if (oldHeight == mHeaderViewHeight && height < mHeaderViewHeight) {
+            } else if (oldHeight >= mHeaderThresholdHeight && height < mHeaderThresholdHeight) {
                 if (height != 0) {  // initial setup
                     mOrigHeaderView.onReachBelowHeaderViewHeight();
                 }
