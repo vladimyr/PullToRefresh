@@ -117,6 +117,8 @@ public class OverScrollListView extends ListView {
     private final static int DEFAULT_MAX_OVER_SCROLL_DURATION = 350;
     private static final int REVEALER_ANIMATION_DURATION = 350;
 
+    private static final boolean USE_MIN_REFRESH_DURATION = false;
+
     // boucing for a normal touch scroll gesture(happens right after the finger leaves the screen)
     private Scroller mScroller;
 
@@ -195,7 +197,9 @@ public class OverScrollListView extends ListView {
         mContext = context;
 
         TypedArray ta = context.obtainStyledAttributes(attrs, R.styleable.OverScrollListView);
-        setupRefreshTimer(ta.getInt(R.styleable.OverScrollListView_min_refresh_duration, 0));
+        setupRefreshTimer(USE_MIN_REFRESH_DURATION
+                ? ta.getInt(R.styleable.OverScrollListView_min_refresh_duration, 0)
+                : 0);
         ta.recycle();
 
         mScreenDensity = context.getResources().getDisplayMetrics().density;
