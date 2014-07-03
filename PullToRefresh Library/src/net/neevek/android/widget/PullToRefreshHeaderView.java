@@ -14,6 +14,8 @@ import android.widget.RelativeLayout;
 import android.widget.TextView;
 import net.neevek.android.R;
 
+import java.util.concurrent.Callable;
+
 /**
  * Created with IntelliJ IDEA.
  * User: neevek
@@ -25,9 +27,21 @@ public class PullToRefreshHeaderView extends RelativeLayout implements OverScrol
 
     private final static int ROTATE_ANIMATION_DURATION = 300;
 
-    private View mArrow;
-    private TextView mMessageLabel;
-    private ProgressBar mProgressIndicator;
+    protected View mArrow;
+    protected TextView mMessageLabel;
+    protected ProgressBar mProgressIndicator;
+
+    public View getArrow() {
+        return mArrow;
+    }
+
+    public TextView getMessageLabel() {
+        return mMessageLabel;
+    }
+
+    public ProgressBar getProgressIndicator() {
+        return mProgressIndicator;
+    }
 
     private Animation mAnimRotateUp;
     private Animation mAnimRotateDown;
@@ -41,6 +55,7 @@ public class PullToRefreshHeaderView extends RelativeLayout implements OverScrol
     private int mProgressIndicatorId = 0;
 
     private int mRefreshThresholdHeight = 0;
+    private Callable mInitialSetup;
 
     // TODO: add code based constructor!
 
@@ -62,7 +77,7 @@ public class PullToRefreshHeaderView extends RelativeLayout implements OverScrol
         return val;
     }
 
-    public void init(Context context, AttributeSet attrs) {
+    private void init(Context context, AttributeSet attrs) {
         TypedArray ta = context.obtainStyledAttributes(attrs, R.styleable.PullToRefreshHeaderView);
 
         mArrowId = ta.getResourceId(R.styleable.PullToRefreshHeaderView_arrow, 0);
@@ -97,7 +112,26 @@ public class PullToRefreshHeaderView extends RelativeLayout implements OverScrol
             mArrow = findViewById(mArrowId);
             mMessageLabel = (TextView)findViewById(mMessageLabelId);
             mProgressIndicator = (ProgressBar)findViewById(mProgressIndicatorId);
+
+            try {
+                mInitialSetup.call();
+            } catch (Exception e) {
+                // ignore exception
+            }
         }
+    }
+
+    public void initViewWithSetup(Callable setup) {
+        if (null != mArrow) {
+            try {
+                setup.call();
+            } catch (Exception e) {
+                // ignore exception
+            }
+            return;
+        }
+
+        mInitialSetup = setup;
     }
 
     @Override
@@ -110,6 +144,11 @@ public class PullToRefreshHeaderView extends RelativeLayout implements OverScrol
             mMessageLabel.setVisibility(VISIBLE);
             mMessageLabel.setText(mPullText);
         }
+    }
+
+    @Override
+    public void onEndPulling() {
+
     }
 
     /**
@@ -131,8 +170,6 @@ public class PullToRefreshHeaderView extends RelativeLayout implements OverScrol
 
     @Override
     public void onReachBelowHeaderViewHeight() {
-        Log.d(TAG, "onReachBelowHeaderViewHeight called");
-
         if (mProgressIndicator != null)
             mProgressIndicator.setVisibility(GONE);
         if (mMessageLabel != null)
@@ -159,6 +196,11 @@ public class PullToRefreshHeaderView extends RelativeLayout implements OverScrol
             mProgressIndicator.setVisibility(GONE);
         if (mMessageLabel != null)
             mMessageLabel.setVisibility(GONE);
+    }
+
+    @Override
+    public void onBeforeEndRefreshing() {
+
     }
 
     public void setPullText(String pullText) {

@@ -130,15 +130,15 @@ public class OverScrollListView extends ListView {
     private int mMaximumVelocity;
 
     // the top-level layout of the header view
-    private PullToRefreshCallback mOrigHeaderView;
+    protected PullToRefreshCallback mOrigHeaderView;
 
     // the layout, of which we will do adjust the height, and on which
     // we call requestLayout() to cause the view hierarchy to be redrawn
-    private View mHeaderView;
+    protected View mHeaderView;
     // for convenient adjustment of the header view height
     private ViewGroup.LayoutParams mHeaderViewLayoutParams;
     // the original height of the header view
-    private int mHeaderViewHeight;
+    protected int mHeaderViewHeight;
 
     // user of this pull-to-refresh ListView certainly will register a
     // a listener, which will be called when a "refresh" action should
@@ -164,12 +164,12 @@ public class OverScrollListView extends ListView {
 
     private Context mContext;
     private Revealer mRevealer;
-    private int mHeaderThresholdHeight = 0;
-    private int mMinRefreshDuration;
+    protected int mHeaderThresholdHeight = 0;
     private Timer mRefreshTimer = null;
 
     private Synchronizer mRefreshSync;
     private RefreshObserver mRefreshObserver;
+    protected RelativeLayout mHeaderView2;
 
     private int dp2px(float dpVal) {
         final DisplayMetrics dm = this.getResources().getDisplayMetrics();
@@ -195,25 +195,7 @@ public class OverScrollListView extends ListView {
         mContext = context;
 
         TypedArray ta = context.obtainStyledAttributes(attrs, R.styleable.OverScrollListView);
-        mMinRefreshDuration = ta.getInt(R.styleable.OverScrollListView_min_refresh_duration, 0);
-
-        if (mMinRefreshDuration == 0) {
-            mRefreshSync = new Synchronizer(1);
-            mRefreshTimer = null;
-        }
-        else {
-            mRefreshSync = new Synchronizer(2);
-            mRefreshTimer = new Timer(mMinRefreshDuration);
-        }
-
-        mRefreshSync.addObserver(new Synchronizer.SynchronizationObserver() {
-            @Override
-            public void onSynced(Synchronizer synchronizer) {
-                finishRefreshingInternal();
-                mRefreshSync.recycle();
-            }
-        });
-
+        setupRefreshTimer(ta.getInt(R.styleable.OverScrollListView_min_refresh_duration, 0));
         ta.recycle();
 
         mScreenDensity = context.getResources().getDisplayMetrics().density;
@@ -234,9 +216,28 @@ public class OverScrollListView extends ListView {
         mMaximumVelocity = configuration.getScaledMaximumFlingVelocity();
     }
 
-    public void setPullToRefreshHeaderView(int headerLayout) {
+    protected void setupRefreshTimer(int minRefreshDuration) {
+        if (minRefreshDuration == 0) {
+            mRefreshSync = new Synchronizer(1);
+            mRefreshTimer = null;
+        }
+        else {
+            mRefreshSync = new Synchronizer(2);
+            mRefreshTimer = new Timer(minRefreshDuration);
+        }
+
+        mRefreshSync.addObserver(new Synchronizer.SynchronizationObserver() {
+            @Override
+            public void onSynced(Synchronizer synchronizer) {
+                finishRefreshingInternal();
+                mRefreshSync.recycle();
+            }
+        });
+    }
+
+    public PullToRefreshHeaderView setPullToRefreshHeaderView(int headerLayout) {
         if (mOrigHeaderView != null) {
-            return;
+            return null;
         }
 
         // TODO: add proper checking for invalid resource IDs!
@@ -269,7 +270,10 @@ public class OverScrollListView extends ListView {
         headerContainer.getLayoutParams().height = headerView.getMeasuredHeight();
 
         // add header view to the list
+        mHeaderView2 = origHeaderView;
         addHeaderView(origHeaderView);
+
+        return headerView;
 
         /*
         if (!(headerView instanceof PullToRefreshCallback)) {
@@ -376,6 +380,7 @@ public class OverScrollListView extends ListView {
             mIsRefreshing = false;
 
             mRefreshObserver.onRefreshFinished();
+            mOrigHeaderView.onBeforeEndRefreshing();
 
             mScroller.forceFinished(true);
 
@@ -875,6 +880,8 @@ public class OverScrollListView extends ListView {
         if (mOrigHeaderView != null && !mIsRefreshing && !mCancellingRefreshing) {
             if (oldHeight == 0 && height > 0) {
                 mOrigHeaderView.onStartPulling();
+            } else if (oldHeight > 0 && height == 0) {
+                mOrigHeaderView.onEndPulling();
             }
             mOrigHeaderView.onPull(height);
 
@@ -886,6 +893,10 @@ public class OverScrollListView extends ListView {
                 }
             }
         } else if (mCancellingRefreshing && height == 0) {
+            if (mOrigHeaderView != null) {
+                mOrigHeaderView.onEndRefreshing();
+            }
+
             notifyRefreshAnimationEnd();
         }
     }
@@ -938,6 +949,7 @@ public class OverScrollListView extends ListView {
      */
     public interface PullToRefreshCallback {
         void onStartPulling();
+        void onEndPulling();
 
         // scrollY = how far have we pulled?
         void onPull(int scrollY);
@@ -947,6 +959,8 @@ public class OverScrollListView extends ListView {
 
         void onStartRefreshing();
         void onEndRefreshing();
+
+        void onBeforeEndRefreshing();
     }
 
     public static interface OnLoadMoreListener {
