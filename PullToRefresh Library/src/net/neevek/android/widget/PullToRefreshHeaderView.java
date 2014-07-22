@@ -5,7 +5,6 @@ import android.content.Context;
 import android.content.res.TypedArray;
 import android.os.Build;
 import android.util.AttributeSet;
-import android.util.Log;
 import android.view.View;
 import android.view.animation.Animation;
 import android.view.animation.RotateAnimation;
@@ -135,7 +134,7 @@ public class PullToRefreshHeaderView extends RelativeLayout implements OverScrol
     }
 
     @Override
-    public void onStartPulling() {
+    public void onStartPulling(OverScrollListView list) {
         if (mProgressIndicator != null)
             mProgressIndicator.setVisibility(GONE);
         if (mArrow != null)
@@ -199,7 +198,7 @@ public class PullToRefreshHeaderView extends RelativeLayout implements OverScrol
     }
 
     @Override
-    public void onBeforeEndRefreshing() {
+    public void onBeforeEndRefreshing(OverScrollListView list) {
 
     }
 

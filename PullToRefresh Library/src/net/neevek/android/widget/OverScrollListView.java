@@ -17,11 +17,9 @@ import android.widget.LinearLayout;
 import android.widget.ListView;
 import android.widget.RelativeLayout;
 import android.widget.Scroller;
-import net.neevek.utilities.Synchronizer;
 import net.neevek.android.R;
+import net.neevek.utilities.Synchronizer;
 import net.neevek.utilities.Timer;
-
-import java.lang.reflect.Type;
 
 /**
  * @author neevek <i at neevek.net>
@@ -172,6 +170,7 @@ public class OverScrollListView extends ListView {
     private Synchronizer mRefreshSync;
     private RefreshObserver mRefreshObserver;
     protected RelativeLayout mHeaderView2;
+    private boolean mSkipRefresh = false;
 
     private int dp2px(float dpVal) {
         final DisplayMetrics dm = this.getResources().getDisplayMetrics();
@@ -369,6 +368,10 @@ public class OverScrollListView extends ListView {
         mOnLoadMoreListener = listener;
     }
 
+    public boolean isRefreshSkipped() {
+        return mSkipRefresh;
+    }
+
     public interface RefreshObserver {
         public abstract void onRefreshFinished();
     }
@@ -384,14 +387,28 @@ public class OverScrollListView extends ListView {
             mIsRefreshing = false;
 
             mRefreshObserver.onRefreshFinished();
-            mOrigHeaderView.onBeforeEndRefreshing();
+            mOrigHeaderView.onBeforeEndRefreshing(this);
 
-            mScroller.forceFinished(true);
-
-            // hide the header view, with a smooth bouncing effect
-            springBack(-mHeaderViewHeight + getScrollY());
-//            setSelection(0);
+            closeHeader();
         }
+    }
+
+    public void closeHeader() {
+        closeHeader(false);
+    }
+
+    public void closeHeader(boolean clearSkipRefresh) {
+        mCancellingRefreshing = true;
+        mIsRefreshing = false;
+
+        mScroller.forceFinished(true);
+
+        // hide the header view, with a smooth bouncing effect
+        springBack(-mHeaderViewHeight + getScrollY());
+//            setSelection(0);
+
+        if (clearSkipRefresh)
+            mSkipRefresh = false;
     }
 
     public void finishRefreshingAndHideHeaderViewWithoutAnimation() {
@@ -661,6 +678,10 @@ public class OverScrollListView extends ListView {
         }
     }
 
+    public void skipNextRefresh() {
+        mSkipRefresh = true;
+    }
+
     private void triggerRefresh() {
         mIsRefreshing = true;
 
@@ -676,7 +697,7 @@ public class OverScrollListView extends ListView {
 
         mOrigHeaderView.onStartRefreshing();
 
-        if (mOnRefreshListener != null) {
+        if (mOnRefreshListener != null && !mSkipRefresh) {
             mOnRefreshListener.onRefresh(mBizContextForRefresh);
             mBizContextForRefresh = null;
         }
@@ -883,7 +904,7 @@ public class OverScrollListView extends ListView {
 
         if (mOrigHeaderView != null && !mIsRefreshing && !mCancellingRefreshing) {
             if (oldHeight == 0 && height > 0) {
-                mOrigHeaderView.onStartPulling();
+                mOrigHeaderView.onStartPulling(this);
             } else if (oldHeight > 0 && height == 0) {
                 mOrigHeaderView.onEndPulling();
             }
@@ -952,7 +973,7 @@ public class OverScrollListView extends ListView {
      * The interface to be implemented by header view to be used with OverScrollListView
      */
     public interface PullToRefreshCallback {
-        void onStartPulling();
+        void onStartPulling(OverScrollListView list);
         void onEndPulling();
 
         // scrollY = how far have we pulled?
@@ -964,7 +985,7 @@ public class OverScrollListView extends ListView {
         void onStartRefreshing();
         void onEndRefreshing();
 
-        void onBeforeEndRefreshing();
+        void onBeforeEndRefreshing(OverScrollListView list);
     }
 
     public static interface OnLoadMoreListener {
