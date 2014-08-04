@@ -10,6 +10,7 @@ import android.graphics.Color;
 import android.os.Build;
 import android.util.AttributeSet;
 import android.util.DisplayMetrics;
+import android.util.Log;
 import android.util.TypedValue;
 import android.view.*;
 import android.view.animation.DecelerateInterpolator;
@@ -116,6 +117,7 @@ public class OverScrollListView extends ListView {
     private static final int REVEALER_ANIMATION_DURATION = 350;
 
     private static final boolean USE_MIN_REFRESH_DURATION = false;
+    private static final String TAG = "OverScrollListView";
 
     // boucing for a normal touch scroll gesture(happens right after the finger leaves the screen)
     private Scroller mScroller;
@@ -372,6 +374,11 @@ public class OverScrollListView extends ListView {
         return mSkipRefresh;
     }
 
+    public void clearSkipRefreshFlag() {
+        mSkipRefresh = false;
+        Log.d(TAG, "mSkipRefresh=" + mSkipRefresh);
+    }
+
     public interface RefreshObserver {
         public abstract void onRefreshFinished();
     }
@@ -387,7 +394,7 @@ public class OverScrollListView extends ListView {
             mIsRefreshing = false;
 
             mRefreshObserver.onRefreshFinished();
-            mOrigHeaderView.onBeforeEndRefreshing(this);
+            mOrigHeaderView.onBeforeEndRefreshing();
 
             closeHeader();
         }
@@ -409,6 +416,17 @@ public class OverScrollListView extends ListView {
 
         if (clearSkipRefresh)
             mSkipRefresh = false;
+    }
+
+    public boolean openHeader() {
+        if (!mSkipRefresh)
+            return false;
+
+        if (getFirstVisiblePosition() != 0)
+            setSelection(0);
+
+        scroll(getScrollY(), -mHeaderViewHeight);
+        return true;
     }
 
     public void finishRefreshingAndHideHeaderViewWithoutAnimation() {
@@ -736,6 +754,11 @@ public class OverScrollListView extends ListView {
         postInvalidate();
     }
 
+    private void scroll(int startY, int deltaY) {
+        mScroller.startScroll(0, startY, 0, deltaY, DEFAULT_MAX_OVER_SCROLL_DURATION);
+        postInvalidate();
+    }
+
     @Override
     public void computeScroll() {
         if (mScroller.computeScrollOffset()) {
@@ -904,7 +927,7 @@ public class OverScrollListView extends ListView {
 
         if (mOrigHeaderView != null && !mIsRefreshing && !mCancellingRefreshing) {
             if (oldHeight == 0 && height > 0) {
-                mOrigHeaderView.onStartPulling(this);
+                mOrigHeaderView.onStartPulling();
             } else if (oldHeight > 0 && height == 0) {
                 mOrigHeaderView.onEndPulling();
             }
@@ -973,7 +996,7 @@ public class OverScrollListView extends ListView {
      * The interface to be implemented by header view to be used with OverScrollListView
      */
     public interface PullToRefreshCallback {
-        void onStartPulling(OverScrollListView list);
+        void onStartPulling();
         void onEndPulling();
 
         // scrollY = how far have we pulled?
@@ -985,7 +1008,7 @@ public class OverScrollListView extends ListView {
         void onStartRefreshing();
         void onEndRefreshing();
 
-        void onBeforeEndRefreshing(OverScrollListView list);
+        void onBeforeEndRefreshing();
     }
 
     public static interface OnLoadMoreListener {

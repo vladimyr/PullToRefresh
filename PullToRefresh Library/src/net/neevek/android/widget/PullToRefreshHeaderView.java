@@ -134,7 +134,7 @@ public class PullToRefreshHeaderView extends RelativeLayout implements OverScrol
     }
 
     @Override
-    public void onStartPulling(OverScrollListView list) {
+    public void onStartPulling() {
         if (mProgressIndicator != null)
             mProgressIndicator.setVisibility(GONE);
         if (mArrow != null)
@@ -198,7 +198,7 @@ public class PullToRefreshHeaderView extends RelativeLayout implements OverScrol
     }
 
     @Override
-    public void onBeforeEndRefreshing(OverScrollListView list) {
+    public void onBeforeEndRefreshing() {
 
     }
 
